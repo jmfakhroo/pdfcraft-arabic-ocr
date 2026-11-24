@@ -20,6 +20,9 @@ say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 ok()   { printf '  ✓ %s\n' "$*"; }
 die()  { printf '\n✗ %s\n' "$*" >&2; exit 1; }
 
+# Everything runs inside main(), so that with "curl ... | bash" bash has read the whole
+# script before any step runs (a step reading stdin can't swallow the rest of it).
+main() {
 # --- The repo files: this checkout, or a download when piped from curl.
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
 if [[ ! -f "$SRC/pyproject.toml" ]]; then
@@ -184,3 +187,6 @@ EOF
 [[ "$OS" == Darwin ]] && echo ' • Finder: right-click a PDF > Quick Actions > Customize… and switch on "Arabic OCR (PdfCraft)" once.'
 [[ "$OS" == Linux ]] && echo ' • Files: right-click a PDF > Open With > Arabic OCR (PdfCraft).'
 echo ' • Check or repair any time:  arabic-ocr-doctor'
+}
+
+main "$@" </dev/null
