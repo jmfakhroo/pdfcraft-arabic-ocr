@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdfcraft-arabic-ocr"
+version = "1.0.0"
+description = "Arabic OCR for PdfCraft: searchable Arabic PDFs on macOS, Linux and Windows"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# Linux/Windows: OCR engine + PDF pipeline. macOS uses Apple Vision and Homebrew's ocrmypdf.
+full = ["ocrmypdf>=16", "rapidocr[rtl]>=3", "onnxruntime", "pillow"]
+
+[project.urls]
+Homepage = "https://github.com/jmfakhroo/pdfcraft-arabic-ocr"
+
+[project.scripts]
+arabic-ocr = "pdfcraft_arabic_ocr.cli:main"
+arabic-ocr-doctor = "pdfcraft_arabic_ocr.doctor:main"
+tesseract-for-pdfcraft = "pdfcraft_arabic_ocr.shim:main"
+
+[tool.setuptools.package-data]
+pdfcraft_arabic_ocr = ["selftest.png"]
