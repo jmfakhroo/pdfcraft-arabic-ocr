@@ -6,6 +6,9 @@ Engines, best first:
   rapidocr  Windows/Linux (and macOS if installed): RapidOCR's PP-OCRv5 Arabic model.
             Lines it reads badly (score < WEAK) or misses are filled with Tesseract's reading.
   tesseract Tesseract's Arabic model alone.
+  surya     opt-in (set "engine": "surya" in config.json): Surya 2.5 through a local
+            llama.cpp server, see surya.py. Much more accurate on old and vocalized print,
+            but needs a graphics card. Tesseract supplies the line positions.
 
 Everything here returns lines in reading order with word boxes in image pixels.
 """
@@ -253,6 +256,74 @@ def merge(primary: list[Line], tess: list[Line]) -> list[Line]:
     return out
 
 
+# --- Surya (llama.cpp) ---------------------------------------------------------------------
+
+
+def _rows(lines: list[Line]) -> list[tuple[tuple[int, int, int, int], int]]:
+    """Group line boxes that sit side by side (two hemistichs, say) into rows, top to bottom.
+    Each row is (box, weight), the weight being how many letters Tesseract saw on it."""
+    rows: list[list[Line]] = []
+    for ln in sorted(lines, key=lambda x: x.box[1] + x.box[3] / 2):
+        for row in rows:
+            top = max(r.box[1] for r in row)
+            bottom = min(r.box[1] + r.box[3] for r in row)
+            if min(bottom, ln.box[1] + ln.box[3]) - max(top, ln.box[1]) >= 0.5 * min(bottom - top, ln.box[3]):
+                row.append(ln)
+                break
+        else:
+            rows.append([ln])
+    out = []
+    for row in rows:
+        left, top = min(r.box[0] for r in row), min(r.box[1] for r in row)
+        right, bottom = max(r.box[0] + r.box[2] for r in row), max(r.box[1] + r.box[3] for r in row)
+        weight = sum(len(w.text) for r in row for w in r.words)
+        out.append(((left, top, right - left, bottom - top), max(1, weight)))
+    return out
+
+
+def place_blocks(blocks, tess: list[Line]) -> list[Line]:
+    """Surya gives the text of each block with one box around the block. A searchable PDF
+    needs every word near its place, so the block's words are shared out over the text lines
+    Tesseract found inside that box, in proportion to how much Tesseract saw on each line.
+    Tesseract's reading is thrown away; only its line positions are used."""
+    heights = sorted(t.box[3] for t in tess)
+    typical = heights[len(heights) // 2] if heights else 0
+    free = list(tess)
+    out: list[Line] = []
+    for _label, (l, t, w, h), text in blocks:
+        words = text.split()
+        if not words:
+            continue
+        inside = [x for x in free if l - 5 <= x.box[0] + x.box[2] / 2 <= l + w + 5
+                  and t - 5 <= x.box[1] + x.box[3] / 2 <= t + h + 5]
+        free = [x for x in free if x not in inside]
+        rows = _rows(inside)
+        if not rows:  # Tesseract saw nothing here: cut the block into even rows
+            n = max(1, min(len(words), round(h / typical))) if typical else 1
+            rows = [((l, round(t + i * h / n), w, max(1, round(h / n))), 1) for i in range(n)]
+        total, done, seen = sum(wt for _, wt in rows), 0, 0
+        for box, wt in rows:
+            seen += wt
+            upto = len(words) if seen >= total else round(len(words) * seen / total)
+            part = words[done:upto]
+            done = max(done, upto)
+            if part:
+                out.append(Line(box, _split_words(" ".join(part), box, 0.95), 0.95, "surya"))
+    out.sort(key=lambda x: x.box[1])
+    return out
+
+
+def surya_page(image: Path, cfg: dict, langs: str) -> tuple[int, int, list[Line]]:
+    from . import surya
+
+    W, H, blocks = surya.ocr(image, cfg)
+    try:
+        _, _, tess = tesseract_page(image, cfg, langs)
+    except Exception:  # noqa: BLE001 - positions are a nicety; the text is what matters
+        tess = []
+    return W, H, place_blocks(blocks, tess)
+
+
 # --- entry point ---------------------------------------------------------------------------
 
 
@@ -277,6 +348,8 @@ def read_page(image, cfg: dict | None = None, langs: str | None = None, engine: 
     try:
         if engine == "vision":
             return vision_page(image, cfg, langs)
+        if engine == "surya":
+            return surya_page(image, cfg, langs)
         if engine == "rapidocr":
             W, H, lines = rapid_page(image, cfg, langs)
             try:
