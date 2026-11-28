@@ -21,7 +21,7 @@
 |---|---|---|
 | macOS 14 أو أحدث | محرّك Apple للتعرف على النص (Live Text)، ويكمّل Tesseract السطور التي يفوتها | الأفضل، ومُختبَر على كتاب كامل |
 | لينكس | RapidOCR (نموذج PP-OCRv5 العربي)، ويكمّل Tesseract السطور الضعيفة والناقصة | جيد، ومُختبَر داخل PdfCraft على لينكس |
-| ويندوز 10 و11 | مثل لينكس | تجريبي: لم يُختبر بعد على جهاز ويندوز |
+| ويندوز 10 و11 | مثل لينكس | مُختبَر على ويندوز 11 مع PdfCraft 0.22: صفحة تجريبية واضحة قُرئت صحيحة، وكتاب قديم من 132 صفحة (طبعة 1315هـ) قُرئ جزء من كلماته فقط. لم يُختبر بعد داخل نافذة PdfCraft |
 
 ### التثبيت
 
@@ -104,7 +104,7 @@ Tested on a 371-page book: nearly all text came through, and PdfCraft's search f
 |---|---|---|
 | macOS 14+ | Apple's text recognition (the Live Text engine), with Tesseract filling lines it misses | Best; tested on a full book |
 | Linux | RapidOCR (PP-OCRv5 Arabic model), with Tesseract replacing weak or missing lines | Good; tested inside PdfCraft on Linux |
-| Windows 10/11 | Same as Linux | Experimental: not yet tested on a Windows machine |
+| Windows 10/11 | Same as Linux | Tested on Windows 11 with PdfCraft 0.22: a clean test page read correctly; an old 132-page print (1315 AH) was only partly correct. Not yet tested in the PdfCraft window |
 
 ### Install
 
