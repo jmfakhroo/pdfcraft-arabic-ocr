@@ -54,6 +54,8 @@ DEFAULTS = {
     "tesseract": None,  # absolute path to the real tesseract
     "tessdata": None,  # folder with ara/eng/osd .traineddata
     "vision_ocr": None,  # macOS: absolute path to vision-ocr
+    "llama_server": None,  # absolute path to llama.cpp's llama-server (for the surya engine)
+    "surya_port": 8765,  # local port of Surya's model server
 }
 
 
@@ -71,6 +73,8 @@ def load() -> dict:
     if SYSTEM == "Darwin" and not cfg["vision_ocr"]:
         p = data_dir() / "vision-ocr"
         cfg["vision_ocr"] = str(p) if p.is_file() else None
+    if not cfg["llama_server"] or not Path(cfg["llama_server"]).is_file():
+        cfg["llama_server"] = find_llama_server()
     return cfg
 
 
@@ -96,6 +100,23 @@ def find_tesseract() -> str | None:
         if Path(c).is_file():
             return c
     return shutil.which("tesseract")
+
+
+def find_llama_server() -> str | None:
+    """llama.cpp's server, as installed by winget, Homebrew or a package manager."""
+    name = "llama-server.exe" if SYSTEM == "Windows" else "llama-server"
+    candidates: list[Path] = [data_dir() / "llama-cuda" / name]  # a CUDA build unpacked here wins
+    if SYSTEM == "Windows":
+        # %LOCALAPPDATA% may be missing from the environment (PdfCraft), so go from our own folder.
+        local = Path(os.environ.get("LOCALAPPDATA") or data_dir().parent)
+        candidates += sorted((local / "Microsoft/WinGet/Packages").glob("ggml.llamacpp*/" + name))
+        candidates.append(local / "Microsoft/WinGet/Links" / name)
+    else:
+        candidates += [Path("/opt/homebrew/bin") / name, Path("/usr/local/bin") / name, Path("/usr/bin") / name]
+    for c in candidates:
+        if c.is_file():
+            return str(c)
+    return shutil.which("llama-server")
 
 
 def tess_env(cfg: dict) -> dict:
