@@ -19,6 +19,13 @@ SELFTEST = Path(__file__).with_name("selftest.png")
 SELFTEST_WORD = "العالمين"  # appears in selftest.png
 
 
+def utf8_output() -> None:
+    """Print ✓ and Arabic file names even when output is piped (Windows would use cp1252)."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def data_dir() -> Path:
     env = os.environ.get("ARABIC_OCR_HOME")
     if env:
