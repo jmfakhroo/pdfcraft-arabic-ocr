@@ -95,6 +95,7 @@ def ocr_one(src: Path, dst: Path, a, cfg: dict, base_cmd: list[str], env: dict) 
 
 
 def main(argv: list[str] | None = None) -> int:
+    config.utf8_output()
     a = build_parser().parse_args(argv)
     cfg = config.load()
     missing = [x for x in a.inputs if not Path(x).expanduser().exists()]
