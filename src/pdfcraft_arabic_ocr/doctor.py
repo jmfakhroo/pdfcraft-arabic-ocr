@@ -171,9 +171,12 @@ def check_helper(cfg: dict, r: Report) -> None:
         env["SystemRoot"] = os.environ.get("SystemRoot", r"C:\Windows")
     with tempfile.TemporaryDirectory() as tmp:
         env["TMP"] = env["TEMP"] = tmp
+        probe = subprocess.run([str(exe), "--list-langs"], capture_output=True, env=env, cwd=tmp, timeout=60)
         res = subprocess.run([str(exe), str(config.SELFTEST), "stdout", "-l", "eng", "tsv"],
                              capture_output=True, env=env, cwd=tmp, timeout=600)
-    if "نيملاعلا" in res.stdout.decode("utf-8", "replace"):
+    if b"eng" not in probe.stdout + probe.stderr:
+        r.bad("tesseract-for-pdfcraft doesn't answer --list-langs, so PdfCraft would reject it")
+    elif "نيملاعلا" in res.stdout.decode("utf-8", "replace"):
         r.ok("PdfCraft's OCR route works (tested with PdfCraft's empty environment)")
     else:
         r.bad("tesseract-for-pdfcraft failed its test: " + res.stderr.decode("utf-8", "replace").strip()[-200:])
@@ -298,6 +301,7 @@ def check_pdfcraft(r: Report) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    config.utf8_output()
     p = argparse.ArgumentParser(prog="arabic-ocr-doctor", description="Set up, check and repair Arabic OCR for PdfCraft.")
     p.add_argument("--setup", action="store_true", help="first-time setup (installers run this)")
     p.add_argument("--quiet", action="store_true", help="only log; notify on problems")
