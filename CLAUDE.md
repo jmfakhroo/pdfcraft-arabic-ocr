@@ -6,7 +6,7 @@ This repo adds Arabic OCR to PdfCraft on macOS, Linux and Windows. When a user a
 
 - macOS: needs macOS 14 or newer (`sw_vers -productVersion`), Homebrew (`brew`), and Apple's Command Line Tools (`xcrun --find swiftc`). If Homebrew is missing, point the user to https://brew.sh; don't install it for them without asking. If the Command Line Tools are missing, `xcode-select --install` opens Apple's installer, and the user has to click through it.
 - Linux: the installer uses apt, dnf, pacman or zypper with sudo. Tell the user it will ask for their password.
-- Windows: needs winget. The Windows path is experimental (not yet tested on real Windows); say so before installing.
+- Windows: needs winget. Tested on Windows 11 with PdfCraft 0.22: clean print reads well, old prints only partly. The PdfCraft window itself hasn't been tested yet; say so before installing.
 - PdfCraft is optional for the `arabic-ocr` command but needed for the in-app part. It's usually in /Applications on macOS.
 
 ## 2. Run the installer
