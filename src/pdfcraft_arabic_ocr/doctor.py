@@ -142,7 +142,34 @@ def engine_reads(cfg: dict, name: str) -> bool:
         return False
 
 
+def check_surya(cfg: dict, r: Report) -> None:
+    """The opt-in Surya engine: llama-server, model files, and a real reading of the test page."""
+    from . import surya
+
+    if not cfg.get("llama_server"):
+        r.bad("engine is set to surya but llama-server (llama.cpp) wasn't found; install llama.cpp")
+        return
+    try:
+        if not surya.model_paths():
+            surya.download_models(print if not r.quiet else lambda *_: None)
+            r.fix(f"Surya model files installed in {surya.model_dir()}")
+        if surya.model_paths()[0].name != surya.FAST_MODEL and surya.make_fast_model(cfg):
+            surya.stop(cfg)  # a running server still has the slower copy loaded
+            r.fix("made the faster Q8 copy of Surya's model")
+        _, _, lines = engine.surya_page(config.SELFTEST, cfg, "ara")
+    except Exception as e:  # noqa: BLE001
+        r.bad(f"Surya isn't working: {e}")
+        return
+    if config.SELFTEST_WORD in " ".join(ln.text for ln in lines):
+        r.ok("Surya reads Arabic (local model server; Tesseract supplies line positions)")
+    else:
+        r.bad("Surya answered but didn't read the test page")
+
+
 def check_engine(cfg: dict, r: Report) -> None:
+    if cfg.get("engine") == "surya":
+        check_surya(cfg, r)
+        return
     if config.SYSTEM == "Darwin":
         if not engine_reads(cfg, "vision") and not (build_vision(cfg, r) and engine_reads(cfg, "vision")):
             r.bad("Apple text recognition (vision-ocr) isn't working; needs Xcode Command Line Tools")
@@ -305,12 +332,18 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="arabic-ocr-doctor", description="Set up, check and repair Arabic OCR for PdfCraft.")
     p.add_argument("--setup", action="store_true", help="first-time setup (installers run this)")
     p.add_argument("--quiet", action="store_true", help="only log; notify on problems")
+    p.add_argument("--engine", choices=["auto", "vision", "rapidocr", "tesseract", "surya"],
+                   help="switch the engine and set it up; surya needs llama.cpp and a graphics card")
     a = p.parse_args(argv)
     r = Report(a.quiet)
     if not a.quiet:
         print("Arabic OCR for PdfCraft: checking…")
 
     cfg = config.load()
+    if a.engine:
+        cfg["engine"] = a.engine
+    if cfg.get("engine") == "surya":  # look again, so a CUDA build added later is picked up
+        cfg["llama_server"] = config.find_llama_server() or cfg.get("llama_server")
     if not cfg.get("tesseract"):
         r.bad("Tesseract isn't installed (see the README for your system)")
     else:
