@@ -23,6 +23,15 @@
 | لينكس | RapidOCR (نموذج PP-OCRv5 العربي)، ويكمّل Tesseract السطور الضعيفة والناقصة | جيد، ومُختبَر داخل PdfCraft على لينكس |
 | ويندوز 10 و11 | مثل لينكس | مُختبَر على ويندوز 11 مع PdfCraft 0.22: صفحة تجريبية واضحة قُرئت صحيحة، وكتاب قديم من 132 صفحة (طبعة 1315هـ) قُرئ جزء من كلماته فقط. لم يُختبر بعد داخل نافذة PdfCraft |
 
+### اختياري: محرّك Surya (يحتاج بطاقة رسوميات)
+
+للطبعات القديمة والنصوص المشكولة محرّك أدقّ: Surya 2.5، ويعمل على جهازك عبر llama.cpp. في خمس صفحات قورنت بنص صحيح معروف أصاب 94% من الحروف، مقابل 63% لـ RapidOCR مع Tesseract. يحتاج بطاقة رسوميات: على RTX 5070 Ti يقرأ نحو 49 صفحة في الدقيقة بأمر `arabic-ocr`، ويأخذ نحو 4.5 ثانية للصفحة داخل PdfCraft. جُرّب على ويندوز 11 فقط حتى الآن.
+
+1. ثبّت llama.cpp: `winget install ggml.llamacpp` في ويندوز، و`brew install llama.cpp` في macOS ولينكس.
+2. شغّل `arabic-ocr-doctor --engine surya`، فينزّل النموذج (1.3 غيغابايت) ويختبره.
+
+للرجوع شغّل `arabic-ocr-doctor --engine auto`. بطاقات NVIDIA أسرع مع نسخة CUDA من llama.cpp: فكّها مع ملفات CUDA المرافقة لها في مجلد اسمه `llama-cuda` داخل مجلد البيانات (`%LOCALAPPDATA%\arabic-ocr` في ويندوز)، ثم شغّل الفحص مرة أخرى. مواضع الكلمات تقريبية مع هذا المحرّك: البحث يعمل، لكن التظليل قد ينزاح كلمة أو كلمتين. ولنموذج Surya ترخيص خاص به (مجاني للاستخدام الشخصي والبحث).
+
 ### التثبيت
 
 macOS ولينكس:
@@ -105,6 +114,15 @@ Tested on a 371-page book: nearly all text came through, and PdfCraft's search f
 | macOS 14+ | Apple's text recognition (the Live Text engine), with Tesseract filling lines it misses | Best; tested on a full book |
 | Linux | RapidOCR (PP-OCRv5 Arabic model), with Tesseract replacing weak or missing lines | Good; tested inside PdfCraft on Linux |
 | Windows 10/11 | Same as Linux | Tested on Windows 11 with PdfCraft 0.22: a clean test page read correctly; an old 132-page print (1315 AH) was only partly correct. Not yet tested in the PdfCraft window |
+
+### Optional: the Surya engine (needs a graphics card)
+
+For old prints and fully vocalized text there is a more accurate engine: Surya 2.5, run on your own machine through llama.cpp. On five pages checked against a known correct text it got 94% of the letters right, against 63% for RapidOCR with Tesseract. It needs a graphics card: on an RTX 5070 Ti it reads about 49 pages a minute with `arabic-ocr` and takes about 4.5 seconds a page inside PdfCraft. Tested on Windows 11 only so far.
+
+1. Install llama.cpp: `winget install ggml.llamacpp` on Windows, `brew install llama.cpp` on macOS and Linux.
+2. Run `arabic-ocr-doctor --engine surya`. It downloads the model (1.3 GB) and tests it.
+
+To go back, run `arabic-ocr-doctor --engine auto`. NVIDIA cards are faster with the CUDA build of llama.cpp: unpack it, together with its CUDA runtime files, into a folder named `llama-cuda` inside the data folder (`%LOCALAPPDATA%\arabic-ocr` on Windows), then run the doctor again. With this engine word positions are approximate: search works, but a highlight can be a word or two off. Surya's model has its own licence (free for personal use and research).
 
 ### Install
 
