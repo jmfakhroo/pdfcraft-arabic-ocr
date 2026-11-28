@@ -1,4 +1,4 @@
-# pdfcraft-arabic-ocr installer for Windows 10/11 (EXPERIMENTAL: not yet tested on Windows).
+# pdfcraft-arabic-ocr installer for Windows 10/11 (tested on Windows 11 with PdfCraft 0.22).
 #
 #   powershell -ExecutionPolicy Bypass -File install.ps1          (from a clone of the repo)
 #   irm https://raw.githubusercontent.com/jmfakhroo/pdfcraft-arabic-ocr/main/install.ps1 | iex
