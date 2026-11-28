@@ -53,8 +53,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("inputs", nargs="+", help="PDFs, images, or folders of them")
     p.add_argument("--out", help="output file (one input) or folder (default NAME.ocr.pdf; for a folder: FOLDER-ocr)")
     p.add_argument("-l", "--lang", default=None, help="languages joined with + (default: ara). e.g. ara+eng")
-    p.add_argument("-e", "--engine", choices=["auto", "vision", "rapidocr", "tesseract"], default=None,
-                   help="auto (default): Apple Vision on macOS, RapidOCR on Windows/Linux, each with Tesseract filling gaps")
+    p.add_argument("-e", "--engine", choices=["auto", "vision", "rapidocr", "tesseract", "surya"], default=None,
+                   help="auto (default): Apple Vision on macOS, RapidOCR on Windows/Linux, each with Tesseract "
+                        "filling gaps. surya: most accurate, needs a graphics card and llama.cpp")
     p.add_argument("-k", "--keep-harakat", action="store_true",
                    help="keep harakat in the searchable text (default: left out, so 'الحمد' finds 'الحمدُ')")
     p.add_argument("-f", "--force", action="store_true", help="re-OCR every page, even pages that already have text")
@@ -128,8 +129,18 @@ def main(argv: list[str] | None = None) -> int:
     plugin = Path(__file__).with_name("plugin.py")
     base = [*ocrmypdf, "--plugin", str(plugin), "-l", langs, "--rotate-pages",
             "--output-type", "pdf", "--optimize", "1"]
-    if a.jobs:
-        base += ["--jobs", str(a.jobs)]
+    if eng == "surya":
+        from . import surya
+
+        try:
+            surya.ensure(cfg)  # load the model once, before the page workers start
+        except RuntimeError as e:
+            print(f"arabic-ocr: {e}", file=sys.stderr)
+            return 1
+    if a.jobs or eng == "surya":
+        # Surya's server reads SLOTS pages at a time. Three workers per slot keeps it fed while the
+        # other workers render pages and find line positions (measured: 48 pages/min against 31).
+        base += ["--jobs", str(a.jobs or min(os.cpu_count() or 4, surya.SLOTS * 3))]
     if a.clean:
         base.append("--clean")
     if a.deskew:
