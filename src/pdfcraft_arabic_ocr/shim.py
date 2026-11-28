@@ -63,7 +63,12 @@ def main(argv: list[str] | None = None) -> int:
     if not exe:
         sys.stderr.write("tesseract-for-pdfcraft: the real tesseract wasn't found; run arabic-ocr-doctor\n")
         return 1
-    return subprocess.run([exe, *args], env=config.tess_env(cfg), **config.no_window()).returncode
+    # Capture and re-emit: with CREATE_NO_WINDOW, Windows doesn't pass our pipes to the child,
+    # so PdfCraft's --version / --list-langs probe would get nothing and reject the helper.
+    res = subprocess.run([exe, *args], env=config.tess_env(cfg), capture_output=True, **config.no_window())
+    sys.stdout.buffer.write(res.stdout)
+    sys.stderr.buffer.write(res.stderr)
+    return res.returncode
 
 
 if __name__ == "__main__":
